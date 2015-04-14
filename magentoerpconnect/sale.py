@@ -945,10 +945,10 @@ class SaleOrderImportMapper(ImportMapper):
             name = prefix + name
         return {'name': name}
 
-    @mapping
-    def store_id(self, record):
-        shop_id = self.options.storeview.store_id.openerp_id.id
-        return {'shop_id': shop_id}
+    # @mapping
+    # def store_id(self, record):
+    #     shop_id = self.options.storeview.store_id.openerp_id.id
+    #     return {'shop_id': shop_id}
 
     @mapping
     def customer_id(self, record):

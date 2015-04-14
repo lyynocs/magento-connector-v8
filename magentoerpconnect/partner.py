@@ -22,6 +22,7 @@
 import logging
 import xmlrpclib
 from collections import namedtuple
+import openerp
 from openerp.osv import fields, orm
 from openerp.addons.connector.queue.job import job
 from openerp.addons.connector.connector import ConnectorUnit
@@ -356,9 +357,9 @@ class PartnerImportMapper(ImportMapper):
         if binding_id:
             storeview = self.session.browse('magento.storeview',
                                             binding_id)
-            # todo assign the right company_id, tempary comment off
-            # if storeview.store_id and storeview.store_id.company_id:
-            #     return {'company_id': storeview.store_id.company_id.id}
+
+            if storeview.store_id and storeview.store_id.company_id:
+                return {'company_id': storeview.store_id.company_id.id}
         return {'company_id': False}
 
     @mapping
@@ -542,11 +543,13 @@ class BaseAddressImportMapper(ImportMapper):
     def company_id(self, record):
         parent_id = record.get('parent_id')
         if parent_id:
-            parent = self.session.browse('res.partner', parent_id)
-            if parent.company_id:
-                return {'company_id': parent.company_id.id}
-            else:
-                return {'company_id': False}
+            # todo: Cause Access Error, need to know how to access fields
+            pass
+            # parent = self.session.browse('res.partner', parent_id)
+            # if parent.company_id:
+            #     return {'company_id': parent.company_id.id}
+            # else:
+            #     return {'company_id': False}
         # Don't return anything, we are merging into an existing partner
         return
 

@@ -22,6 +22,7 @@
 
 import logging
 from datetime import datetime, timedelta
+from openerp import api
 from openerp.osv import fields, orm
 from openerp.tools import DEFAULT_SERVER_DATETIME_FORMAT
 from openerp.tools.translate import _
@@ -419,6 +420,10 @@ class magento_store(orm.Model):
                                 [('website_id', 'in', ids)],
                                 context=context)
 
+    @api.model
+    def _default_company(self):
+        return self.env['res.company']._company_default_get('res.partner')
+
     _columns = {
         'name': fields.char('Name', required=True, readonly=True),
         'website_id': fields.many2one(
@@ -427,6 +432,12 @@ class magento_store(orm.Model):
             required=True,
             readonly=True,
             ondelete='cascade'),
+        'warehouse_id': fields.many2one('stock.warehouse',
+                                        'Warehouse',
+                                        required=True,
+                                        help='Warehouse used to compute the '
+                                             'stock quantities.'),
+        'company_id': fields.many2one('res.company', 'Company', select=1),
         # 'openerp_id': fields.many2one(
         #     'sale.shop',
         #     string='Sale Shop',
@@ -472,6 +483,7 @@ class magento_store(orm.Model):
 
     _defaults = {
         'create_invoice_on': 'paid',
+        'company_id': _default_company,
     }
 
     _sql_constraints = [
@@ -652,11 +664,10 @@ class StoreImportMapper(ImportMapper):
         binding_id = binder.to_openerp(record['website_id'])
         return {'website_id': binding_id}
 
-    # todo: the v7 sale.shop has the warehouse_id, remove for v8, need comfirm
-    # @mapping
-    # @only_create
-    # def warehouse_id(self, record):
-    #     return {'warehouse_id': self.backend_record.warehouse_id.id}
+    @mapping
+    @only_create
+    def warehouse_id(self, record):
+        return {'warehouse_id': self.backend_record.warehouse_id.id}
 
 
 @magento
