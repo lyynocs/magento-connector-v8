@@ -158,6 +158,7 @@ class sale_order(orm.Model):
         if default is None:
             default = {}
         default['magento_bind_ids'] = False
+        _logger.info("copy_data")
         return super(sale_order, self).copy_data(cr, uid, id,
                                                  default=default,
                                                  context=context)
@@ -193,6 +194,7 @@ class sale_order(orm.Model):
                 'magento.sale.order',
                 binding.id,
                 description="Reopen sales order %s" % binding.magento_id)
+        _logger.info("copy_data")
         return result
 
 
@@ -287,6 +289,7 @@ class sale_order_line(orm.Model):
                 binding_obj.write(cr, uid, binding_ids,
                                   {'openerp_id': new_id},
                                   context=context)
+
         return new_id
 
     def copy_data(self, cr, uid, id, default=None, context=None):
@@ -633,8 +636,15 @@ class SaleOrderImport(MagentoImportSynchronizer):
 
     def _after_import(self, binding_id):
         self._link_parent_orders(binding_id)
-        self._create_payment(binding_id)
+        # todo: automatic_payment is lost in v8, need to fix it
+        # self._create_payment(binding_id)
         binding = self.session.browse(self.model._name, binding_id)
+
+        # calculate the tax and amount
+        if binding.openerp_id.order_line:
+            line = binding.openerp_id.order_line[0]
+            self.session.pool['sale.order.line'].write(self.session.cr, self.session.uid, line.id, {"price_unit": line.price_unit})
+
         if binding.magento_parent_id:
             move_comment = self.environ.get_connector_unit(
                 SaleOrderMoveComment)
