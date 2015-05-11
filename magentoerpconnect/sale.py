@@ -961,6 +961,11 @@ class SaleOrderImportMapper(ImportMapper):
     #     return {'shop_id': shop_id}
 
     @mapping
+    def warehouse_id(self, record):
+        warehouse_id = self.options.storeview.store_id.warehouse_id.id
+        return {'warehouse_id': warehouse_id}
+
+    @mapping
     def customer_id(self, record):
         binder = self.get_binder_for_model('magento.res.partner')
         partner_id = binder.to_openerp(record['customer_id'], unwrap=True)
