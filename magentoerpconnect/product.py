@@ -37,6 +37,7 @@ from openerp.addons.connector.exception import (MappingError,
                                                 InvalidDataError,
                                                 IDMissingInBackend
                                                 )
+from openerp.addons.connector.session import ConnectorSession
 from openerp.addons.connector.unit.mapper import (mapping,
                                                   ImportMapper,
                                                   )
@@ -132,6 +133,26 @@ class magento_product_product(orm.Model):
     ]
 
     RECOMPUTE_QTY_STEP = 1000  # products at a time
+
+    def write(self, cr, uid, ids, vals, context=None):
+        if not hasattr(ids, '__iter__'):
+            ids = [ids]
+
+        if vals.get("magento_qty"):
+            for record_id in ids:
+                session = ConnectorSession(cr, uid, context=context)
+                if session.context.get('connector_no_export'):
+                    continue
+                if session.browse('magento.product.product', record_id).no_stock_sync:
+                    continue
+                inventory_fields = list(set(vals).intersection(INVENTORY_FIELDS))
+                if inventory_fields:
+                    export_product_inventory.delay(session, 'magento.product.product',
+                                                   record_id, fields=inventory_fields,
+                                                   priority=20)
+
+        return super(magento_product_product, self).write(cr, uid, ids, vals,
+                                             context=context)
 
     def recompute_magento_qty(self, cr, uid, ids, context=None):
         """ Check if the quantity in the stock location configured
@@ -695,18 +716,18 @@ INVENTORY_FIELDS = ('manage_stock',
                     'magento_qty',
                     )
 
-
-@on_record_write(model_names='magento.product.product')
-def magento_product_modified(session, model_name, record_id, vals):
-    if session.context.get('connector_no_export'):
-        return
-    if session.browse(model_name, record_id).no_stock_sync:
-        return
-    inventory_fields = list(set(vals).intersection(INVENTORY_FIELDS))
-    if inventory_fields:
-        export_product_inventory.delay(session, model_name,
-                                       record_id, fields=inventory_fields,
-                                       priority=20)
+# using the override write method
+# @on_record_write(model_names='magento.product.product')
+# def magento_product_modified(session, model_name, record_id, vals):
+#     if session.context.get('connector_no_export'):
+#         return
+#     if session.browse(model_name, record_id).no_stock_sync:
+#         return
+#     inventory_fields = list(set(vals).intersection(INVENTORY_FIELDS))
+#     if inventory_fields:
+#         export_product_inventory.delay(session, model_name,
+#                                        record_id, fields=inventory_fields,
+#                                        priority=20)
 
 
 @job
