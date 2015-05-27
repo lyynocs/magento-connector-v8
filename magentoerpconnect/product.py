@@ -138,7 +138,8 @@ class magento_product_product(orm.Model):
         if not hasattr(ids, '__iter__'):
             ids = [ids]
 
-        if vals.get("magento_qty"):
+        # magento_qty maybe 0, also need to be updated
+        if "magento_qty" in vals:
             for record_id in ids:
                 session = ConnectorSession(cr, uid, context=context)
                 if session.context.get('connector_no_export'):
